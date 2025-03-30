@@ -1,122 +1,192 @@
-// server.js - Renderhez optimalizálva, biztonságos bejelentkezés, CORS és statikus kiszolgálás
+// === Szenzor adatainak frissítése ===
+async function fetchData() {
+  try {
+    const response = await fetch('https://api.thingspeak.com/channels/2875631/feeds.json?results=1');
+    const data = await response.json();
+    const lastEntry = data.feeds[0];
 
-const express = require('express');
-const session = require('express-session');
-const bodyParser = require('body-parser');
-const passport = require('passport');
-const LocalStrategy = require('passport-local').Strategy;
-const bcrypt = require('bcrypt');
-const cors = require('cors');
-const path = require('path');
-const mongoose = require('mongoose');
+    const temp = parseFloat(lastEntry.field1);
+    const humidity = parseFloat(lastEntry.field2);
 
-// === MongoDB kapcsolat ===
-mongoose.connect('mongodb+srv://balintkiss:6eo8bogDbFcI5uQo@m0.d3gpjf9.mongodb.net/wifiapp?retryWrites=true&w=majority&appName=M0')
-  .then(() => console.log("✅ Kapcsolódva a MongoDB-hez"))
-  .catch(err => console.error("❌ MongoDB hiba:", err));
+    document.getElementById('temperature').innerText = temp + " °C";
+    document.getElementById('humidity').innerText = humidity + " %";
 
-const app = express();
+    let overallStatus = "";
+    let statusClass = "normal";
 
-// === ADMIN USER ===
-const adminUser = {
-  id: 1,
-  username: 'admin',
-  passwordHash: '$2b$10$O5OYi9.flRBeifwhT5u5F.I1Eq4QFjXU4aDftZx.hdErPBpDnMgc2' 
-};
+    if (temp > 30) {
+      overallStatus += "🔥 Meleg van! ";
+      statusClass = "high";
+    } else if (temp < 18) {
+      overallStatus += "❄️ Hideg van! ";
+      statusClass = "low";
+    }
 
-// === CORS Beállítás (csak GitHub Pages-ről engedélyezve) ===
-const corsOptions = {
-  origin: 'https://balintkiss.github.io',
-  credentials: true
-};
-app.use(cors(corsOptions));
+    if (humidity > 60) {
+      overallStatus += "💦 Magas a páratartalom! ";
+      statusClass = "high";
+    } else if (humidity < 30) {
+      overallStatus += "💨 Száraz a levegő! ";
+      statusClass = "low";
+    }
 
-// === Statikus fájlok kiszolgálása (opcionális, ha kell frontend kiszolgálás is) ===
-app.use(express.static(path.join(__dirname, 'public')));
+    if (overallStatus === "") {
+      overallStatus = '<i class="fas fa-circle-check" style="color: lightgreen;"></i> Megfelelő környezet';
+      statusClass = "normal";
+    }
 
-// === Middleware ===
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
-
-// === Session (cross-origin cookie engedéllyel) ===
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'mySecretKey',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: true,        // csak HTTPS-en működik (Render-en igen)
-    sameSite: 'none'     // hogy más domainről is küldhető legyen (GitHub Pages)
+    const statusEl = document.getElementById("overall-status");
+    statusEl.innerHTML = overallStatus;
+    statusEl.className = "status " + statusClass;
+  } catch (error) {
+    console.error("Error fetching data:", error);
   }
-}));
+}
+setInterval(fetchData, 5000);
+fetchData();
 
-app.use(passport.initialize());
-app.use(passport.session());
+// === "Tovább" gombhoz tartozó toggleCharts függvény ===
+function toggleCharts() {
+  const chartsDiv = document.getElementById("charts");
+  const button = document.querySelector(".more-btn");
 
-// === Passport stratégia ===
-passport.use(new LocalStrategy((username, password, done) => {
-  if (username !== adminUser.username) {
-    return done(null, false, { message: 'Hibás hitelesítő adatok.' });
-  }
-  bcrypt.compare(password, adminUser.passwordHash, (err, isMatch) => {
-    if (err) return done(err);
-    if (isMatch) return done(null, adminUser);
-    return done(null, false, { message: 'Hibás jelszó.' });
-  });
-}));
-
-passport.serializeUser((user, done) => {
-  done(null, user.id);
-});
-
-passport.deserializeUser((id, done) => {
-  if (id === adminUser.id) {
-    done(null, adminUser);
+  if (chartsDiv.style.display === "none" || chartsDiv.style.display === "") {
+    chartsDiv.style.display = "block";
+    chartsDiv.style.opacity = "0";
+    setTimeout(() => {
+      chartsDiv.style.opacity = "1";
+    }, 50);
+    button.innerHTML = '<i class="fas fa-times"></i> Bezár';
   } else {
-    done(new Error('Felhasználó nem található'), null);
+    chartsDiv.style.opacity = "0";
+    setTimeout(() => {
+      chartsDiv.style.display = "none";
+    }, 300);
+    button.innerHTML = '<i class="fas fa-chart-line"></i> Tovább';
   }
-});
+}
 
-// === Bejelentkezés ===
-app.post('/login', passport.authenticate('local'), (req, res) => {
-  res.json({ message: 'Sikeres bejelentkezés', user: req.user });
-});
-
-// === Kijelentkezés ===
-app.post('/logout', (req, res) => {
-  req.logout(err => {
-    if (err) return res.status(500).json({ message: 'Hiba kijelentkezéskor' });
-    res.json({ message: 'Sikeres kijelentkezés' });
-  });
-});
-
-// === Védett route: admin ===
-app.get('/admin', (req, res) => {
-  if (req.isAuthenticated()) {
-    res.json({ message: 'Admin felület elérhető' });
+// === Admin modal, login és panel kezelése ===
+function openAdminModal() {
+  document.getElementById('adminModal').style.display = 'block';
+  renderModalContent();
+}
+function closeAdminModal() {
+  document.getElementById('adminModal').style.display = 'none';
+}
+function renderModalContent() {
+  const modalBody = document.getElementById('modal-body');
+  if (sessionStorage.getItem('admin') === 'true') {
+    modalBody.innerHTML = `
+      <h2>Admin Panel</h2>
+      <div class="smart-plug-toggle">
+        <div id="wifiStatus" class="smart-plug-status off">Wifi kikapcsolva</div>
+        <label class="switch">
+          <input type="checkbox" id="smartPlugToggle" onchange="toggleSmartPlug(this.checked)">
+          <span class="slider"></span>
+        </label>
+        <span id="smartPlugStatus">Ki</span>
+      </div>
+      <button onclick="logoutAdmin()" style="margin-top: 20px; background: #e74c3c;">Kilépés</button>
+    `;
+    fetchSmartPlugStatus();
   } else {
-    res.status(401).json({ message: 'Nincs jogosultság' });
+    modalBody.innerHTML = `
+      <h2>Admin bejelentkezés</h2>
+      <form id="modalLoginForm">
+        <input type="text" id="modalUsername" placeholder="Felhasználónév" required>
+        <input type="password" id="modalPassword" placeholder="Jelszó" required>
+        <button type="submit">Bejelentkezés</button>
+        <div class="error" id="modalError"></div>
+      </form>
+    `;
+    document.getElementById('modalLoginForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const username = document.getElementById('modalUsername').value;
+      const password = document.getElementById('modalPassword').value;
+
+      fetch('https://balintkiss-github-io.onrender.com/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username, password })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.message === 'Sikeres bejelentkezés') {
+          sessionStorage.setItem('admin', 'true');
+          renderModalContent();
+        } else {
+          document.getElementById('modalError').textContent = data.message || 'Hiba történt a bejelentkezés során.';
+        }
+      })
+      .catch(error => {
+        console.error('Hiba a bejelentkezés során:', error);
+        document.getElementById('modalError').textContent = 'Hiba történt a bejelentkezés során.';
+      });
+    });
   }
-});
+}
 
-// === Smart Plug vezérlés ===
-app.post('/api/smartplug', (req, res) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ message: 'Nincs jogosultság' });
+function toggleSmartPlug(isOn) {
+  const statusText = document.getElementById('smartPlugStatus');
+  const wifiStatus = document.getElementById('wifiStatus');
+
+  statusText.innerText = isOn ? "Be" : "Ki";
+  wifiStatus.innerText = isOn ? "Wifi bekapcsolva" : "Wifi kikapcsolva";
+  wifiStatus.className = 'smart-plug-status ' + (isOn ? 'on' : 'off');
+
+  fetch('https://balintkiss-github-io.onrender.com/api/smartplug', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ state: isOn ? "on" : "off" })
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log("Smart plug válasz:", data);
+  })
+  .catch(error => console.error("Hiba a smart plug váltásakor:", error));
+}
+
+function fetchSmartPlugStatus() {
+  fetch('https://balintkiss-github-io.onrender.com/api/smartplug', {
+    method: 'GET',
+    credentials: 'include'
+  })
+  .then(response => response.json())
+  .then(data => {
+    const isOn = data.state === 'on';
+    const toggle = document.getElementById('smartPlugToggle');
+    const statusText = document.getElementById('smartPlugStatus');
+    const wifiStatus = document.getElementById('wifiStatus');
+
+    if (toggle) toggle.checked = isOn;
+    if (statusText) statusText.innerText = isOn ? "Be" : "Ki";
+    if (wifiStatus) {
+      wifiStatus.innerText = isOn ? "Wifi bekapcsolva" : "Wifi kikapcsolva";
+      wifiStatus.className = 'smart-plug-status ' + (isOn ? 'on' : 'off');
+    }
+  })
+  .catch(error => console.error('Nem sikerült lekérdezni a smart plug állapotát:', error));
+}
+
+function logoutAdmin() {
+  fetch('https://balintkiss-github-io.onrender.com/logout', {
+    method: 'POST',
+    credentials: 'include'
+  })
+  .then(response => response.json())
+  .then(data => {
+    sessionStorage.removeItem('admin');
+    closeAdminModal();
+  })
+  .catch(error => console.error('Kijelentkezési hiba:', error));
+}
+
+window.onclick = function(event) {
+  const modal = document.getElementById('adminModal');
+  if (event.target === modal) {
+    closeAdminModal();
   }
-  const { state } = req.body;
-  console.log(`Smart plug állapota: ${state}`);
-  res.json({ message: `Smart plug állapota: ${state}` });
-});
-
-// === Server indítás ===
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`✅ Szerver fut: http://localhost:${PORT} vagy Renderen éles`);
-});
-
-// === WIFI State ===
-const wifiSchema = new mongoose.Schema({
-  state: { type: String, enum: ['on', 'off'], default: 'off' }
-});
-
-const WifiState = mongoose.model('WifiState', wifiSchema);
+};
