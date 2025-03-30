@@ -1,4 +1,4 @@
-// server.js - Renderhez optimalizálva, biztonságos bejelentkezés és CORS
+// server.js - Renderhez optimalizálva, biztonságos bejelentkezés, CORS és statikus kiszolgálás
 
 const express = require('express');
 const session = require('express-session');
@@ -7,6 +7,7 @@ const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const bcrypt = require('bcrypt');
 const cors = require('cors');
+const path = require('path');
 
 const app = express();
 
@@ -23,6 +24,9 @@ const corsOptions = {
   credentials: true
 };
 app.use(cors(corsOptions));
+
+// === Statikus fájlok kiszolgálása (opcionális, ha kell frontend kiszolgálás is) ===
+app.use(express.static(path.join(__dirname, 'public')));
 
 // === Middleware ===
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -82,7 +86,7 @@ app.post('/logout', (req, res) => {
 // === Védett route: admin ===
 app.get('/admin', (req, res) => {
   if (req.isAuthenticated()) {
-    res.json({ message: 'Üdv az admin felületen' });
+    res.json({ message: 'Admin felület elérhető' });
   } else {
     res.status(401).json({ message: 'Nincs jogosultság' });
   }
@@ -93,12 +97,9 @@ app.post('/api/smartplug', (req, res) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ message: 'Nincs jogosultság' });
   }
-
   const { state } = req.body;
-  console.log(`Smart plug állapot: ${state}`);
+  console.log(`Smart plug állapota: ${state}`);
   res.json({ message: `Smart plug állapota: ${state}` });
-
-  // Ide jön majd a valódi eszköz vezérlése pl. HTTP hívással
 });
 
 // === Server indítás ===
