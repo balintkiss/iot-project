@@ -87,6 +87,8 @@ function renderModalContent() {
         </label>
         <span id="smartPlugStatus">Ki</span>
       </div>
+
+      <button onclick="logoutAdmin()" class="logout-btn">Kijelentkezés</button>
     `;
     fetchSmartPlugStatus();
   } else {
