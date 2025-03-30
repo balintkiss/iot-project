@@ -13,7 +13,7 @@ const adminUser = {
   id: 1,
   username: 'admin',
   // A jelszó hash-elt változata (előre generált bcrypt-el)
-  passwordHash: bcrypt.hashSync('jelszo123', saltRounds)
+  passwordHash: '$2b$10$O5OYi9.flRBeifwhT5u5F.I1Eq4QFjXU4aDftZx.hdErPBpDnMgc2'
 };
 
 // Middleware-k beállítása
@@ -21,7 +21,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 app.use(session({
-  secret: 'mySecretKey', // Éles környezetben használd a környezeti változókat!
+  secret: process.env.SESSION_SECRET, // Éles környezetben használd a környezeti változókat!
   resave: false,
   saveUninitialized: false,
   cookie: {
