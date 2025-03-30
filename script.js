@@ -170,9 +170,24 @@ function fetchSmartPlugStatus() {
   .catch(error => console.error('Nem sikerült lekérdezni a smart plug állapotát:', error));
 }
 
+function logoutAdmin() {
+  fetch('https://balintkiss-github-io.onrender.com/logout', {
+    method: 'POST',
+    credentials: 'include'
+  })
+  .then(response => response.json())
+  .then(data => {
+    sessionStorage.removeItem('admin');
+    closeAdminModal();
+  })
+  .catch(error => console.error('Kijelentkezési hiba:', error));
+}
+
 window.onclick = function(event) {
   const modal = document.getElementById('adminModal');
   if (event.target === modal) {
     closeAdminModal();
   }
 };
+
+
