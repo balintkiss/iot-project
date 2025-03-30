@@ -104,7 +104,7 @@ async function fetchData() {
         const password = document.getElementById('modalPassword').value;
         
         // Küldés a szerver /login végponthoz (HTTPS, cookie-k továbbítása)
-        fetch('https://yourserver.com/login', {  // Cseréld ki a saját szerver URL-edre!
+        fetch('https://balintkiss-github-io.onrender.com/login', {  // Cseréld ki a saját szerver URL-edre!
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -134,7 +134,7 @@ async function fetchData() {
     document.getElementById('smartPlugStatus').innerText = isOn ? "Be" : "Ki";
     // Példaként küldünk egy POST kérést a szervernek a smart plug váltásához.
     // Cseréld ki az URL-t a saját API végpontodra!
-    fetch('https://yourserver.com/api/smartplug', {
+    fetch('https://balintkiss-github-io.onrender.com/api/smartplug', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
