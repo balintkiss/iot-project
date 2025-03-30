@@ -8,6 +8,15 @@ const LocalStrategy = require('passport-local').Strategy;
 const bcrypt = require('bcrypt');
 const cors = require('cors');
 const path = require('path');
+const mongoose = require('mongoose');
+
+// === MongoDB kapcsolat ===
+mongoose.connect('mongodb+srv://balintkiss:6eo8bogDbFcI5uQo@m0.d3gpjf9.mongodb.net/wifiapp?retryWrites=true&w=majority&appName=M0', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log("✅ Kapcsolódva a MongoDB-hez"))
+.catch(err => console.error("❌ MongoDB hiba:", err));
 
 const app = express();
 
@@ -107,3 +116,10 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`✅ Szerver fut: http://localhost:${PORT} vagy Renderen éles`);
 });
+
+// === WIFI State ===
+const wifiSchema = new mongoose.Schema({
+  state: { type: String, enum: ['on', 'off'], default: 'off' }
+});
+
+const WifiState = mongoose.model('WifiState', wifiSchema);

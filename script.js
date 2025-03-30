@@ -88,6 +88,7 @@ function renderModalContent() {
         <span id="smartPlugStatus">Ki</span>
       </div>
     `;
+    fetchSmartPlugStatus();
   } else {
     modalBody.innerHTML = `
       <h2>Admin bejelentkezés</h2>
@@ -145,6 +146,28 @@ function toggleSmartPlug(isOn) {
     console.log("Smart plug válasz:", data);
   })
   .catch(error => console.error("Hiba a smart plug váltásakor:", error));
+}
+
+function fetchSmartPlugStatus() {
+  fetch('https://balintkiss-github-io.onrender.com/api/smartplug', {
+    method: 'GET',
+    credentials: 'include'
+  })
+  .then(response => response.json())
+  .then(data => {
+    const isOn = data.state === 'on';
+    const toggle = document.getElementById('smartPlugToggle');
+    const statusText = document.getElementById('smartPlugStatus');
+    const wifiStatus = document.getElementById('wifiStatus');
+
+    if (toggle) toggle.checked = isOn;
+    if (statusText) statusText.innerText = isOn ? "Be" : "Ki";
+    if (wifiStatus) {
+      wifiStatus.innerText = isOn ? "Wifi bekapcsolva" : "Wifi kikapcsolva";
+      wifiStatus.className = 'smart-plug-status ' + (isOn ? 'on' : 'off');
+    }
+  })
+  .catch(error => console.error('Nem sikerült lekérdezni a smart plug állapotát:', error));
 }
 
 window.onclick = function(event) {
