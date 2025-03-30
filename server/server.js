@@ -11,12 +11,9 @@ const path = require('path');
 const mongoose = require('mongoose');
 
 // === MongoDB kapcsolat ===
-mongoose.connect('mongodb+srv://balintkiss:6eo8bogDbFcI5uQo@m0.d3gpjf9.mongodb.net/wifiapp?retryWrites=true&w=majority&appName=M0', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log("✅ Kapcsolódva a MongoDB-hez"))
-.catch(err => console.error("❌ MongoDB hiba:", err));
+mongoose.connect('mongodb+srv://balintkiss:6eo8bogDbFcI5uQo@m0.d3gpjf9.mongodb.net/wifiapp?retryWrites=true&w=majority&appName=M0')
+  .then(() => console.log("✅ Kapcsolódva a MongoDB-hez"))
+  .catch(err => console.error("❌ MongoDB hiba:", err));
 
 const app = express();
 
