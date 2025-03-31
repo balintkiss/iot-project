@@ -31,7 +31,13 @@ app.use((req, res, next) => {
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
+// Serve static files from the "public" folder
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Fallback route to serve index.html for any unknown routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 app.use(session({
   secret: process.env.SESSION_SECRET || 'mySecretKey',

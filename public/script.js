@@ -2,6 +2,9 @@
 async function fetchData() {
   try {
     const response = await fetch('https://api.thingspeak.com/channels/2875631/feeds.json?results=1');
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
     const data = await response.json();
     const lastEntry = data.feeds[0];
 
@@ -40,6 +43,10 @@ async function fetchData() {
     statusEl.className = "status " + statusClass;
   } catch (error) {
     console.error("Error fetching data:", error);
+    document.getElementById('temperature').innerText = "N/A";
+    document.getElementById('humidity').innerText = "N/A";
+    document.getElementById("overall-status").innerText = "Hálózati hiba. Ellenőrizze az internetkapcsolatot.";
+    document.getElementById("overall-status").className = "status low";
   }
 }
 setInterval(fetchData, 5000);
@@ -113,13 +120,6 @@ function renderModalContent() {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ username, password })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.message === 'Sikeres bejelentkezés') {
-          sessionStorage.setItem('admin', 'true');
-          renderModalContent();
-        } else {
           document.getElementById('modalError').textContent = data.message || 'Hiba történt a bejelentkezés során.';
         }
       })
