@@ -1,5 +1,3 @@
-// server.js - Renderhez optimalizálva, biztonságos bejelentkezés, CORS és statikus kiszolgálás
-
 const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
@@ -11,6 +9,16 @@ const path = require('path');
 const mongoose = require('mongoose');
 const app = express();
 
+// === CORS Beállítás (GitHub Pages frontendhez) ===
+const corsOptions = {
+  origin: 'https://balintkiss.github.io',
+  credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS']
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // 🔥 engedi a böngésző előkérdéseit
+
 // === MongoDB kapcsolat ===
 mongoose.connect('mongodb+srv://balintkiss:6eo8bogDbFcI5uQo@m0.d3gpjf9.mongodb.net/wifiapp?retryWrites=true&w=majority&appName=M0')
   .then(() => console.log("✅ Kapcsolódva a MongoDB-hez"))
@@ -20,37 +28,23 @@ mongoose.connect('mongodb+srv://balintkiss:6eo8bogDbFcI5uQo@m0.d3gpjf9.mongodb.n
 const adminUser = {
   id: 1,
   username: 'admin',
-  passwordHash: '$2b$10$O5OYi9.flRBeifwhT5u5F.I1Eq4QFjXU4aDftZx.hdErPBpDnMgc2' 
+  passwordHash: '$2b$10$O5OYi9.flRBeifwhT5u5F.I1Eq4QFjXU4aDftZx.hdErPBpDnMgc2'
 };
-
-// === CORS Beállítás (csak GitHub Pages-ről engedélyezve) ===
-const corsOptions = {
-  origin: 'https://balintkiss.github.io', // A frontend pontos URL-je
-  credentials: true,
-  methods: 'GET,POST,PUT,DELETE' // Engedélyezett HTTP metódusok
-};
-
-app.use(cors(corsOptions));
-
-// === Statikus fájlok kiszolgálása (opcionális, ha kell frontend kiszolgálás is) ===
-app.use(express.static(path.join(__dirname, 'public')));
 
 // === Middleware ===
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-
-// === Session (cross-origin cookie engedéllyel) ===
 app.use(session({
   secret: process.env.SESSION_SECRET || 'mySecretKey',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // Csak production környezetben true
+    secure: process.env.NODE_ENV === 'production',
     sameSite: 'none',
-    httpOnly: true // Megakadályozza a kliens oldali hozzáférést
+    httpOnly: true
   }
 }));
-
 app.use(passport.initialize());
 app.use(passport.session());
 
