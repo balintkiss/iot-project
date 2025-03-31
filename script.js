@@ -71,9 +71,11 @@ function openAdminModal() {
   document.getElementById('adminModal').style.display = 'block';
   renderModalContent();
 }
+
 function closeAdminModal() {
   document.getElementById('adminModal').style.display = 'none';
 }
+
 function renderModalContent() {
   const modalBody = document.getElementById('modal-body');
   if (sessionStorage.getItem('admin') === 'true') {
@@ -129,6 +131,7 @@ function renderModalContent() {
   }
 }
 
+// === Smart plug toggle kezelés MongoDB-vel ===
 function toggleSmartPlug(isOn) {
   const statusText = document.getElementById('smartPlugStatus');
   const wifiStatus = document.getElementById('wifiStatus');
@@ -137,11 +140,10 @@ function toggleSmartPlug(isOn) {
   wifiStatus.innerText = isOn ? "Wifi bekapcsolva" : "Wifi kikapcsolva";
   wifiStatus.className = 'smart-plug-status ' + (isOn ? 'on' : 'off');
 
-  fetch('https://balintkiss-github-io.onrender.com/api/smartplug', {
+  fetch('https://balintkiss-iot-backend.onrender.com/api/smartplug', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ state: isOn ? "on" : "off" })
+    body: JSON.stringify({ isOn })
   })
   .then(response => response.json())
   .then(data => {
@@ -151,25 +153,22 @@ function toggleSmartPlug(isOn) {
 }
 
 function fetchSmartPlugStatus() {
-  fetch('https://balintkiss-github-io.onrender.com/api/smartplug', {
-    method: 'GET',
-    credentials: 'include'
-  })
-  .then(response => response.json())
-  .then(data => {
-    const isOn = data.state === 'on';
-    const toggle = document.getElementById('smartPlugToggle');
-    const statusText = document.getElementById('smartPlugStatus');
-    const wifiStatus = document.getElementById('wifiStatus');
+  fetch('https://balintkiss-iot-backend.onrender.com/api/smartplug')
+    .then(response => response.json())
+    .then(data => {
+      const isOn = data.isOn;
+      const toggle = document.getElementById('smartPlugToggle');
+      const statusText = document.getElementById('smartPlugStatus');
+      const wifiStatus = document.getElementById('wifiStatus');
 
-    if (toggle) toggle.checked = isOn;
-    if (statusText) statusText.innerText = isOn ? "Be" : "Ki";
-    if (wifiStatus) {
-      wifiStatus.innerText = isOn ? "Wifi bekapcsolva" : "Wifi kikapcsolva";
-      wifiStatus.className = 'smart-plug-status ' + (isOn ? 'on' : 'off');
-    }
-  })
-  .catch(error => console.error('Nem sikerült lekérdezni a smart plug állapotát:', error));
+      if (toggle) toggle.checked = isOn;
+      if (statusText) statusText.innerText = isOn ? "Be" : "Ki";
+      if (wifiStatus) {
+        wifiStatus.innerText = isOn ? "Wifi bekapcsolva" : "Wifi kikapcsolva";
+        wifiStatus.className = 'smart-plug-status ' + (isOn ? 'on' : 'off');
+      }
+    })
+    .catch(error => console.error('Nem sikerült lekérdezni a smart plug állapotát:', error));
 }
 
 function logoutAdmin() {
@@ -192,7 +191,7 @@ window.onclick = function(event) {
   }
 };
 
-
+// === Cookie banner ===
 function checkCookiePermission() {
   if (navigator.userAgent.includes('Chrome') && !localStorage.getItem('cookiesAccepted')) {
     document.getElementById('cookie-banner').style.display = 'block';
