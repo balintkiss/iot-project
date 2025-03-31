@@ -84,12 +84,8 @@ passport.deserializeUser((id, done) => {
 
 // === Bejelentkezés ===
 app.post('/login', passport.authenticate('local'), (req, res) => {
-  // 🔐 Kézzel állítjuk be a session cookie-t
-  res.cookie('connect.sid', req.sessionID, {
-    sameSite: 'none',
-    secure: true,
-    httpOnly: true
-  });
+  // 🔑 Kényszerítjük a session frissítést, hogy garantáltan legyen Set-Cookie
+  req.session.touch();
 
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', 'https://balintkiss.github.io');
