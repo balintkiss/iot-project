@@ -193,3 +193,16 @@ window.onclick = function(event) {
 };
 
 
+function checkCookiePermission() {
+  if (navigator.userAgent.includes('Chrome') && !localStorage.getItem('cookiesAccepted')) {
+    document.getElementById('cookie-banner').style.display = 'block';
+  }
+}
+
+function acceptCookies() {
+  localStorage.setItem('cookiesAccepted', 'true');
+  document.getElementById('cookie-banner').style.display = 'none';
+  location.reload(); // újratöltés, hogy a session is újra próbálkozzon
+}
+
+window.onload = checkCookiePermission;
