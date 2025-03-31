@@ -18,9 +18,16 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // engedi az előkéréseket
+app.options('*', cors(corsOptions));
 
-// === Fontos! JSON feldolgozók rögtön a CORS után ===
+// === Extra biztonság: kézzel is beállítjuk a fejlécet minden válaszhoz ===
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'https://balintkiss.github.io');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  next();
+});
+
+// === JSON feldolgozók rögtön a CORS után ===
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
@@ -51,7 +58,7 @@ mongoose.connect('mongodb+srv://balintkiss:6eo8bogDbFcI5uQo@m0.d3gpjf9.mongodb.n
 const adminUser = {
   id: 1,
   username: 'admin',
-  passwordHash: '$2b$10$O5OYi9.flRBeifwhT5u5F.I1Eq4QFjXU4aDftZx.hdErPBpDnMgc2' // bcrypt hash
+  passwordHash: '$2b$10$O5OYi9.flRBeifwhT5u5F.I1Eq4QFjXU4aDftZx.hdErPBpDnMgc2'
 };
 
 // === Passport stratégia ===
@@ -80,6 +87,8 @@ passport.deserializeUser((id, done) => {
 
 // === Bejelentkezés ===
 app.post('/login', passport.authenticate('local'), (req, res) => {
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', 'https://balintkiss.github.io');
   res.json({ message: 'Sikeres bejelentkezés', user: req.user });
 });
 
