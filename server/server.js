@@ -48,7 +48,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // === MongoDB kapcsolat ===
-mongoose.connect('mongodb+srv://balintkiss:6eo8bogDbFcI5uQo@m0.d3gpjf9.mongodb.net/wifiapp?retryWrites=true&w=majority&appName=M0')
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ Kapcsolódva a MongoDB-hez"))
   .catch(err => console.error("❌ MongoDB hiba:", err));
 
@@ -139,6 +139,10 @@ app.post('/api/smartplug', async (req, res) => {
   }
 
   const { isOn } = req.body;
+  if (typeof isOn !== 'boolean') {
+    return res.status(400).json({ message: 'Hibás bemenet: isOn mezőnek boolean típusúnak kell lennie.' });
+  }
+
   const newState = isOn ? 'on' : 'off';
 
   try {

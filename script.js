@@ -108,13 +108,6 @@ function renderModalContent() {
       const username = document.getElementById('modalUsername').value;
       const password = document.getElementById('modalPassword').value;
 
-      // For testing: bypass server authentication
-      if (username === "admin" && password === "admin") {
-        sessionStorage.setItem('admin', 'true');
-        renderModalContent();
-        return;
-      }
-
       fetch('https://balintkiss-github-io.onrender.com/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -132,12 +125,11 @@ function renderModalContent() {
       })
       .catch(error => {
         console.error('Hiba a bejelentkezés során:', error);
-        document.getElementById('modalError').textContent = 'Hiba történt a bejelentkezés során. Próbáld a teszt bejelentkezést: admin/admin';
+        document.getElementById('modalError').textContent = 'Hiba történt a bejelentkezés során.';
       });
     });
   }
 }
-
 
 // === Smart plug toggle kezelés MongoDB-vel ===
 function toggleSmartPlug(isOn) {
