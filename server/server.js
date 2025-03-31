@@ -10,7 +10,7 @@ const mongoose = require('mongoose');
 
 const app = express();
 
-// === CORS beállítás GitHub Pages frontendhez ===
+// === CORS Beállítás ===
 const corsOptions = {
   origin: 'https://balintkiss.github.io',
   credentials: true,
@@ -20,27 +20,24 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
-// === Extra biztonság: kézzel is beállítjuk a fejlécet minden válaszhoz ===
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', 'https://balintkiss.github.io');
   res.header('Access-Control-Allow-Credentials', 'true');
   next();
 });
 
-// === JSON feldolgozók rögtön a CORS után ===
+// === Middleware-ek ===
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
-// === Statikus fájlok (ha szükséges) ===
 app.use(express.static(path.join(__dirname, 'public')));
 
-// === Session beállítás ===
 app.use(session({
   secret: process.env.SESSION_SECRET || 'mySecretKey',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: true,
     sameSite: 'none',
     httpOnly: true
   }
@@ -87,6 +84,13 @@ passport.deserializeUser((id, done) => {
 
 // === Bejelentkezés ===
 app.post('/login', passport.authenticate('local'), (req, res) => {
+  // 🔐 Kézzel állítjuk be a session cookie-t
+  res.cookie('connect.sid', req.sessionID, {
+    sameSite: 'none',
+    secure: true,
+    httpOnly: true
+  });
+
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', 'https://balintkiss.github.io');
   res.json({ message: 'Sikeres bejelentkezés', user: req.user });
@@ -96,6 +100,7 @@ app.post('/login', passport.authenticate('local'), (req, res) => {
 app.post('/logout', (req, res) => {
   req.logout(err => {
     if (err) return res.status(500).json({ message: 'Hiba kijelentkezéskor' });
+    res.clearCookie('connect.sid', { sameSite: 'none', secure: true });
     res.json({ message: 'Sikeres kijelentkezés' });
   });
 });
@@ -109,13 +114,13 @@ app.get('/admin', (req, res) => {
   }
 });
 
-// === MongoDB modell a Smart Plug állapothoz ===
+// === Smart Plug állapot modell ===
 const wifiSchema = new mongoose.Schema({
   state: { type: String, enum: ['on', 'off'], default: 'off' }
 });
 const WifiState = mongoose.model('WifiState', wifiSchema);
 
-// === GET - Smart Plug állapot lekérése ===
+// === Smart Plug állapot lekérése ===
 app.get('/api/smartplug', async (req, res) => {
   try {
     let state = await WifiState.findOne();
@@ -130,7 +135,7 @@ app.get('/api/smartplug', async (req, res) => {
   }
 });
 
-// === POST - Smart Plug állapot beállítása ===
+// === Smart Plug állapot mentése ===
 app.post('/api/smartplug', async (req, res) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ message: 'Nincs jogosultság' });
