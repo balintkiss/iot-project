@@ -143,6 +143,7 @@ function toggleSmartPlug(isOn) {
   fetch('https://balintkiss-github-io.onrender.com/api/smartplug', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include', // 🔥 EZ KÜLDI A SESSION COOKIE-T
     body: JSON.stringify({ isOn })
   })
   .then(response => response.json())
@@ -153,7 +154,9 @@ function toggleSmartPlug(isOn) {
 }
 
 function fetchSmartPlugStatus() {
-  fetch('https://balintkiss-github-io.onrender.com/api/smartplug')
+  fetch('https://balintkiss-github-io.onrender.com/api/smartplug', {
+    credentials: 'include'
+  })
     .then(response => response.json())
     .then(data => {
       const isOn = data.isOn;
@@ -170,6 +173,7 @@ function fetchSmartPlugStatus() {
     })
     .catch(error => console.error('Nem sikerült lekérdezni a smart plug állapotát:', error));
 }
+
 
 function logoutAdmin() {
   fetch('https://balintkiss-github-io.onrender.com/logout', {
