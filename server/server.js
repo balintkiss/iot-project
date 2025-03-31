@@ -17,12 +17,13 @@ const corsOptions = {
   methods: ['GET', 'POST', 'OPTIONS']
 };
 
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+app.use(cors(corsOptions)); // still recommended
+app.options('*', cors(corsOptions)); // for preflight
 
+// Manual override just in case
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'https://balintkiss.github.io');
-  res.header('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', 'https://balintkiss.github.io');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   next();
 });
 
