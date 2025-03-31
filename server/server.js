@@ -25,9 +25,11 @@ const adminUser = {
 
 // === CORS Beállítás (csak GitHub Pages-ről engedélyezve) ===
 const corsOptions = {
-  origin: 'https://balintkiss.github.io',
-  credentials: true
+  origin: 'https://balintkiss.github.io', // A frontend pontos URL-je
+  credentials: true,
+  methods: 'GET,POST,PUT,DELETE' // Engedélyezett HTTP metódusok
 };
+
 app.use(cors(corsOptions));
 
 // === Statikus fájlok kiszolgálása (opcionális, ha kell frontend kiszolgálás is) ===
@@ -43,8 +45,9 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: true,
-    sameSite: 'none'
+    secure: process.env.NODE_ENV === 'production', // Csak production környezetben true
+    sameSite: 'none',
+    httpOnly: true // Megakadályozza a kliens oldali hozzáférést
   }
 }));
 
