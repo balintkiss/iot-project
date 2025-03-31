@@ -140,7 +140,7 @@ function toggleSmartPlug(isOn) {
   wifiStatus.innerText = isOn ? "Wifi bekapcsolva" : "Wifi kikapcsolva";
   wifiStatus.className = 'smart-plug-status ' + (isOn ? 'on' : 'off');
 
-  fetch('https://balintkiss-iot-backend.onrender.com/api/smartplug', {
+  fetch('https://balintkiss-github-io.onrender.com/api/smartplug', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ isOn })
@@ -153,7 +153,7 @@ function toggleSmartPlug(isOn) {
 }
 
 function fetchSmartPlugStatus() {
-  fetch('https://balintkiss-iot-backend.onrender.com/api/smartplug')
+  fetch('https://balintkiss-github-io.onrender.com/api/smartplug')
     .then(response => response.json())
     .then(data => {
       const isOn = data.isOn;

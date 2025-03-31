@@ -43,8 +43,8 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: true,        // csak HTTPS-en működik (Render-en igen)
-    sameSite: 'none'     // hogy más domainről is küldhető legyen (GitHub Pages)
+    secure: true,
+    sameSite: 'none'
   }
 }));
 
@@ -97,14 +97,50 @@ app.get('/admin', (req, res) => {
   }
 });
 
-// === Smart Plug vezérlés ===
-app.post('/api/smartplug', (req, res) => {
+// === WIFI State modell ===
+const wifiSchema = new mongoose.Schema({
+  state: { type: String, enum: ['on', 'off'], default: 'off' }
+});
+const WifiState = mongoose.model('WifiState', wifiSchema);
+
+// === Smart Plug állapot lekérése ===
+app.get('/api/smartplug', async (req, res) => {
+  try {
+    let state = await WifiState.findOne();
+    if (!state) {
+      state = new WifiState({ state: 'off' });
+      await state.save();
+    }
+    res.json({ isOn: state.state === 'on' });
+  } catch (err) {
+    console.error("❌ Hiba a GET /api/smartplug során:", err);
+    res.status(500).json({ message: 'Szerverhiba' });
+  }
+});
+
+// === Smart Plug vezérlés és mentés ===
+app.post('/api/smartplug', async (req, res) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ message: 'Nincs jogosultság' });
   }
-  const { state } = req.body;
-  console.log(`Smart plug állapota: ${state}`);
-  res.json({ message: `Smart plug állapota: ${state}` });
+
+  const { isOn } = req.body;
+  const newState = isOn ? 'on' : 'off';
+
+  try {
+    let state = await WifiState.findOne();
+    if (!state) {
+      state = new WifiState({ state: newState });
+    } else {
+      state.state = newState;
+    }
+    await state.save();
+    console.log(`✅ Smart plug állapota mentve: ${newState}`);
+    res.json({ success: true, isOn });
+  } catch (err) {
+    console.error("❌ Hiba a POST /api/smartplug során:", err);
+    res.status(500).json({ message: 'Szerverhiba' });
+  }
 });
 
 // === Server indítás ===
@@ -112,10 +148,3 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`✅ Szerver fut: http://localhost:${PORT} vagy Renderen éles`);
 });
-
-// === WIFI State ===
-const wifiSchema = new mongoose.Schema({
-  state: { type: String, enum: ['on', 'off'], default: 'off' }
-});
-
-const WifiState = mongoose.model('WifiState', wifiSchema);
