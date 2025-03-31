@@ -138,6 +138,7 @@ function renderModalContent() {
   }
 }
 
+
 // === Smart plug toggle kezelés MongoDB-vel ===
 function toggleSmartPlug(isOn) {
   const statusText = document.getElementById('smartPlugStatus');
@@ -169,47 +170,54 @@ function toggleSmartPlug(isOn) {
 }
 
 function fetchSmartPlugStatus() {
-  // First try to get from localStorage
+  // Változó a szerver kérés nyomon követésére
+  let serverRequestSent = false;
+  
+  // Helyi állapot ellenőrzése
   const savedState = localStorage.getItem('smartPlugState');
-  const isOn = savedState === 'on';
-  
-  // Update UI with saved state
-  const toggle = document.getElementById('smartPlugToggle');
-  const statusText = document.getElementById('smartPlugStatus');
-  const wifiStatus = document.getElementById('wifiStatus');
-
-  if (toggle) toggle.checked = isOn;
-  if (statusText) statusText.innerText = isOn ? "Be" : "Ki";
-  if (wifiStatus) {
-    wifiStatus.innerText = isOn ? "Wifi bekapcsolva" : "Wifi kikapcsolva";
-    wifiStatus.className = 'smart-plug-status ' + (isOn ? 'on' : 'off');
+  if (savedState) {
+    const isOn = savedState === 'on';
+    updatePlugUI(isOn);
   }
-  
-  // Still try API but don't rely on it
+
+  // Szerverről lekérés
   try {
+    serverRequestSent = true;
     fetch('https://balintkiss-github-io.onrender.com/api/smartplug', {
       credentials: 'include'
     })
-    .then(response => response.json())
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Szerver hiba: ' + response.status);
+      }
+      return response.json();
+    })
     .then(data => {
-      const apiIsOn = data.isOn;
-      // Only update if different from local state
-      if (apiIsOn !== isOn) {
-        if (toggle) toggle.checked = apiIsOn;
-        if (statusText) statusText.innerText = apiIsOn ? "Be" : "Ki";
-        if (wifiStatus) {
-          wifiStatus.innerText = apiIsOn ? "Wifi bekapcsolva" : "Wifi kikapcsolva";
-          wifiStatus.className = 'smart-plug-status ' + (apiIsOn ? 'on' : 'off');
-        }
-        localStorage.setItem('smartPlugState', apiIsOn ? 'on' : 'off');
+      // Csak akkor frissítsük az UI-t, ha különbözik a helyi állapottól
+      const serverIsOn = data.isOn;
+      const currentLocalState = localStorage.getItem('smartPlugState') === 'on';
+      
+      if (currentLocalState !== serverIsOn) {
+        console.log("Szerver állapot eltér a helyitől, frissítés...");
+        localStorage.setItem('smartPlugState', serverIsOn ? 'on' : 'off');
+        updatePlugUI(serverIsOn);
       }
     })
-    .catch(error => console.error('Nem sikerült lekérdezni a smart plug állapotát:', error));
+    .catch(error => {
+      console.error('Nem sikerült lekérdezni a smart plug állapotát:', error);
+    });
   } catch (e) {
     console.log("API nem elérhető, helyi állapot használva");
   }
+  
+  // Ha 5 másodpercen belül nem kapunk választ a szervertől, 
+  // maradjunk a helyi állapotnál
+  setTimeout(() => {
+    if (serverRequestSent) {
+      console.log("Szerver válasz időtúllépés - helyi állapot megtartása");
+    }
+  }, 5000);
 }
-
 
 function logoutAdmin() {
   fetch('https://balintkiss-github-io.onrender.com/logout', {
