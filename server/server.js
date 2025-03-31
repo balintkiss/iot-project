@@ -7,9 +7,10 @@ const bcrypt = require('bcrypt');
 const cors = require('cors');
 const path = require('path');
 const mongoose = require('mongoose');
+
 const app = express();
 
-// === CORS Beállítás (GitHub Pages frontendhez) ===
+// === CORS beállítás GitHub Pages frontendhez ===
 const corsOptions = {
   origin: 'https://balintkiss.github.io',
   credentials: true,
@@ -17,24 +18,16 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // 🔥 engedi a böngésző előkérdéseit
+app.options('*', cors(corsOptions)); // engedi az előkéréseket
 
-// === MongoDB kapcsolat ===
-mongoose.connect('mongodb+srv://balintkiss:6eo8bogDbFcI5uQo@m0.d3gpjf9.mongodb.net/wifiapp?retryWrites=true&w=majority&appName=M0')
-  .then(() => console.log("✅ Kapcsolódva a MongoDB-hez"))
-  .catch(err => console.error("❌ MongoDB hiba:", err));
-
-// === ADMIN USER ===
-const adminUser = {
-  id: 1,
-  username: 'admin',
-  passwordHash: '$2b$10$O5OYi9.flRBeifwhT5u5F.I1Eq4QFjXU4aDftZx.hdErPBpDnMgc2'
-};
-
-// === Middleware ===
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(bodyParser.urlencoded({ extended: false }));
+// === Fontos! JSON feldolgozók rögtön a CORS után ===
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+
+// === Statikus fájlok (ha szükséges) ===
+app.use(express.static(path.join(__dirname, 'public')));
+
+// === Session beállítás ===
 app.use(session({
   secret: process.env.SESSION_SECRET || 'mySecretKey',
   resave: false,
@@ -45,13 +38,26 @@ app.use(session({
     httpOnly: true
   }
 }));
+
 app.use(passport.initialize());
 app.use(passport.session());
+
+// === MongoDB kapcsolat ===
+mongoose.connect('mongodb+srv://balintkiss:6eo8bogDbFcI5uQo@m0.d3gpjf9.mongodb.net/wifiapp?retryWrites=true&w=majority&appName=M0')
+  .then(() => console.log("✅ Kapcsolódva a MongoDB-hez"))
+  .catch(err => console.error("❌ MongoDB hiba:", err));
+
+// === Admin felhasználó ===
+const adminUser = {
+  id: 1,
+  username: 'admin',
+  passwordHash: '$2b$10$O5OYi9.flRBeifwhT5u5F.I1Eq4QFjXU4aDftZx.hdErPBpDnMgc2' // bcrypt hash
+};
 
 // === Passport stratégia ===
 passport.use(new LocalStrategy((username, password, done) => {
   if (username !== adminUser.username) {
-    return done(null, false, { message: 'Hibás hitelesítő adatok.' });
+    return done(null, false, { message: 'Hibás felhasználónév.' });
   }
   bcrypt.compare(password, adminUser.passwordHash, (err, isMatch) => {
     if (err) return done(err);
@@ -85,7 +91,7 @@ app.post('/logout', (req, res) => {
   });
 });
 
-// === Védett route: admin ===
+// === Védett admin route ===
 app.get('/admin', (req, res) => {
   if (req.isAuthenticated()) {
     res.json({ message: 'Admin felület elérhető' });
@@ -94,13 +100,13 @@ app.get('/admin', (req, res) => {
   }
 });
 
-// === WIFI State modell ===
+// === MongoDB modell a Smart Plug állapothoz ===
 const wifiSchema = new mongoose.Schema({
   state: { type: String, enum: ['on', 'off'], default: 'off' }
 });
 const WifiState = mongoose.model('WifiState', wifiSchema);
 
-// === Smart Plug állapot lekérése ===
+// === GET - Smart Plug állapot lekérése ===
 app.get('/api/smartplug', async (req, res) => {
   try {
     let state = await WifiState.findOne();
@@ -115,7 +121,7 @@ app.get('/api/smartplug', async (req, res) => {
   }
 });
 
-// === Smart Plug vezérlés és mentés ===
+// === POST - Smart Plug állapot beállítása ===
 app.post('/api/smartplug', async (req, res) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ message: 'Nincs jogosultság' });
@@ -140,8 +146,8 @@ app.post('/api/smartplug', async (req, res) => {
   }
 });
 
-// === Server indítás ===
+// === Szerver indítása ===
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`✅ Szerver fut: http://localhost:${PORT} vagy Renderen éles`);
+  console.log(`✅ Szerver fut: http://localhost:${PORT} vagy Renderen`);
 });
